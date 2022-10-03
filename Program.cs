@@ -1,91 +1,27 @@
-﻿namespace blog;
+var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container.
+builder.Services.AddControllersWithViews();
 
-interface IClassB
-{
-    public void ActionB();
-}
-interface IClassC
-{
-    public void ActionC();
-}
+var app = builder.Build();
 
-class ClassC : IClassC
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
 {
-    public ClassC() => Console.WriteLine("ClassC is created");
-    public void ActionC() => Console.WriteLine("Action in ClassC");
+    app.UseExceptionHandler("/Home/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
 }
 
-class ClassB : IClassB
-{
-    IClassC c_dependency;
-    public ClassB(IClassC classc)
-    {
-        c_dependency = classc;
-        Console.WriteLine("ClassB is created");
-    }
-    public void ActionB()
-    {
-        Console.WriteLine("Action in ClassB");
-        c_dependency.ActionC();
-    }
-}
+app.UseHttpsRedirection();
+app.UseStaticFiles();
 
+app.UseRouting();
 
-class ClassA
-{
-    IClassB b_dependency;
-    public ClassA(IClassB classb)
-    {
-        b_dependency = classb;
-        Console.WriteLine("ClassA is created");
-    }
-    public void ActionA()
-    {
-        Console.WriteLine("Action in ClassA");
-        b_dependency.ActionB();
-    }
-}
+app.UseAuthorization();
 
-class ClassC1 : IClassC
-{
-    public ClassC1() => Console.WriteLine("ClassC1 is created");
-    public void ActionC()
-    {
-        Console.WriteLine("Action in C1");
-    }
-}
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
-class ClassB1 : IClassB
-{
-    IClassC c_dependency;
-    public ClassB1(IClassC classc)
-    {
-        c_dependency = classc;
-        Console.WriteLine("ClassB1 is created");
-    }
-    public void ActionB()
-    {
-        Console.WriteLine("Action in B1");
-        c_dependency.ActionC();
-    }
-}
-
-
-class Program
-{
-
-    static void Main(string[] args)
-    {
-
-        ClassC objectC = new ClassC();
-        ClassB objectB = new ClassB(objectC);
-        ClassA objectA = new ClassA(objectB);
-
-        objectA.ActionA();
-
-
-
-    }
-
-}
+app.Run();
