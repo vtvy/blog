@@ -1,0 +1,17 @@
+﻿<div class="dropdown">
+    <a class="btn btn-outline-danger dropdown-toggle" href="#"
+        id="manage-db-drop-down-menu" data-toggle="dropdown">
+        Manage
+    </a>
+    <div class="dropdown-menu" aria-labelledby="manage-db-drop-down-menu">
+        <a class="dropdown-item" asp-action="Index" asp-controller="DbManage" asp-area="Database">
+            Database
+        </a>
+        <a class="dropdown-item" asp-action="Index" asp-controller="Role" asp-area="Identity">
+            Manage Role
+        </a>
+        <a class="dropdown-item" asp-action="Index" asp-controller="User" asp-area="Identity">
+            Manage Member
+        </a>
+    </div>
+</div>

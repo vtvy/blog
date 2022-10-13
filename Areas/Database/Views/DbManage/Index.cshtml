@@ -1,0 +1,58 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using blog.Data
+
+@inject BlogDbContext dbContext
+@{
+    ViewData["Title"] = "Database";
+    var connection = dbContext.Database.GetDbConnection();
+    var databaseName = connection.Database;
+    var isConnect = dbContext.Database.CanConnect();
+
+
+}
+
+<partial name="_AlertMessage" />
+
+<h1>Database</h1>
+<h2>Info</h2>
+<p>- Database: @databaseName</p>
+<p>- From: @connection.DataSource</p>
+<p>- State: @connection.State</p>
+
+<h2>Migration</h2>
+@foreach (var migration in dbContext.Database.GetAppliedMigrations())
+{
+    <p>@migration</p>
+}
+@foreach (var migration in dbContext.Database.GetPendingMigrations())
+{
+    <p>@migration (pending)</p>
+}
+@if (!isConnect)
+{
+    <p class="alert alert-danger">Cannot connect to Database</p>
+}
+else
+{
+    <h2>Table</h2>
+    await dbContext.Database.OpenConnectionAsync();
+    var table = dbContext.Database.GetDbConnection().GetSchema("Tables");
+    <ul>
+        @foreach (System.Data.DataRow row in table.Rows)
+        {
+            <li>@row["TABLE_NAME"]</li>
+        }
+
+    </ul>
+
+    <a class="btn btn-danger" asp-action="DelDb">Delete Database: @databaseName</a>
+    <a class="btn btn-danger" asp-action="SeedData">Seed Database: @databaseName</a>
+
+}
+
+@if (dbContext.Database.GetPendingMigrations().Any())
+{
+    <form method="post">
+        <button class="btn btn-success" type="submit" asp-action="CreateDb">Create Database</button>
+    </form>
+}
