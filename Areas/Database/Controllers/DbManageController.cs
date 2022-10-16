@@ -1,4 +1,5 @@
-﻿using blog.Data;
+﻿using blog.Areas.Database.Models;
+using blog.Data;
 using blog.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

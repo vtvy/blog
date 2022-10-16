@@ -27,10 +27,10 @@ namespace blog.Models
         public string Content { set; get; }
 
         //chuỗi Url
-        [Required(ErrorMessage = "Phải tạo url")]
+        [Required(ErrorMessage = "Need url")]
         [StringLength(100, MinimumLength = 3, ErrorMessage = "{0} dài {1} đến {2}")]
         [RegularExpression(@"^[a-z0-9-]*$", ErrorMessage = "Chỉ dùng các ký tự [a-z0-9-]")]
-        [Display(Name = "Url hiện thị")]
+        [Display(Name = "Url")]
         public string Slug { set; get; }
 
         // Các Category con

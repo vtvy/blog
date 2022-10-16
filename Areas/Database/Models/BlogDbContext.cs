@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace blog.Data
+namespace blog.Areas.Database.Models
 {
     public class BlogDbContext : IdentityDbContext<BlogUser>
     {
@@ -32,7 +32,7 @@ namespace blog.Data
             // Tạo Index cho cột Slug bảng Category
             builder.Entity<Category>(entity =>
             {
-                entity.HasIndex(p => p.Slug);
+                entity.HasIndex(p => p.Slug).IsUnique();
             });
 
 
@@ -40,6 +40,11 @@ namespace blog.Data
             // tạo quan hệ many to many giữa Post và Category
             builder.Entity<PostCategory>().HasKey(p => new { p.PostID, p.CategoryID });
 
+            builder.Entity<Post>(entity =>
+            {
+                entity.HasIndex(p => p.Slug)
+                      .IsUnique();
+            });
         }
 
     }

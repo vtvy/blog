@@ -1,11 +1,11 @@
-﻿using blog.Data;
+﻿using blog.Areas.Database.Models;
+using blog.Data;
 using blog.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddConsole();
-
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(cfg =>
@@ -64,7 +64,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
     options.LoginPath = $"/login/";                                 // Url to login
     options.LogoutPath = $"/logout/";
-    options.AccessDeniedPath = $"/Identity/Account/AccessDenied";   // Redirect when user is not allowed to access
+    options.AccessDeniedPath = $"/khongduoctruycap.html";   // Redirect when user is not allowed to access
 });
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 {
@@ -85,6 +85,11 @@ builder.Services.AddAuthorization(options =>
         policy.RequireClaim("permission", "manage.user");
     });
 
+    options.AddPolicy("ViewManageMenu", policy =>
+    {
+        //policy.RequireAuthenticatedUser();
+        policy.RequireRole(RoleName.Administrator);
+    });
 });
 
 builder.Services.AddAuthentication()
@@ -127,23 +132,18 @@ app.UseAuthorization();
 
 app.UseEndpoints(endpoints =>
 {
-
-    endpoints.MapControllerRoute(
-                     name: "MyArea",
-                     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
-
     endpoints.MapControllerRoute(
         name: "default",
         pattern: "{controller=Home}/{action=Index}/{id?}");
 
     endpoints.MapControllerRoute(
-        name: "learnasproute", // đặt tên route
-        defaults: new { controller = "LearnAsp", action = "Index" },
-        pattern: "learn-asp-net/{id:int?}");
+                     name: "MyArea",
+                     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+
+
 
     // Đến Razor Page    
     endpoints.MapRazorPages();
-
 });
 
 app.UseStatusCodePages(handleError =>

@@ -5,21 +5,20 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using blog.Data;
+using blog.Areas.Database.Models;
 
-#nullable disable
 
 namespace blog.Migrations
 {
     [DbContext(typeof(BlogDbContext))]
-    [Migration("20221013154421_Initial")]
-    partial class Initial
+    [Migration("20221016123246_blog")]
+    partial class blog
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.9")
+                .HasAnnotation("ProductVersion", "6.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
@@ -128,7 +127,8 @@ namespace blog.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.HasIndex("Slug");
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.ToTable("Category");
                 });
@@ -142,7 +142,6 @@ namespace blog.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PostId"), 1L, 1);
 
                     b.Property<string>("AuthorId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Content")
@@ -161,7 +160,6 @@ namespace blog.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("Slug")
-                        .IsRequired()
                         .HasMaxLength(160)
                         .HasColumnType("nvarchar(160)");
 
@@ -173,6 +171,10 @@ namespace blog.Migrations
                     b.HasKey("PostId");
 
                     b.HasIndex("AuthorId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasFilter("[Slug] IS NOT NULL");
 
                     b.ToTable("Post");
                 });
@@ -189,7 +191,7 @@ namespace blog.Migrations
 
                     b.HasIndex("CategoryID");
 
-                    b.ToTable("PostCategories");
+                    b.ToTable("PostCategory");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -338,9 +340,7 @@ namespace blog.Migrations
                 {
                     b.HasOne("blog.Models.BlogUser", "Author")
                         .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("AuthorId");
 
                     b.Navigation("Author");
                 });
