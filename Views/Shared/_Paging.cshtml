@@ -1,8 +1,8 @@
 @model dynamic
 @{
-    int currentPage  = Model.currentPage;
-    int countPages   = Model.countPages;
-    var generateUrl  = Model.generateUrl;
+    int currentPage  = Model.CurPage;
+    int countPages   = Model.PageNumber;
+    var generateUrl  = Model.GenerateUrl;
     
     if (currentPage > countPages)
         currentPage = countPages;

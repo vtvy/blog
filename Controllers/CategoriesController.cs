@@ -89,7 +89,7 @@ namespace blog.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ParentId"] = new SelectList(_context.Categories, "Id", "Slug", category.ParentId);
+            ViewBag.ParentId = new SelectList(_context.Categories, "Id", "Slug", category.ParentId);
             return View(category);
         }
 

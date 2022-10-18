@@ -1,7 +1,9 @@
 ﻿using blog.Areas.Database.Models;
 using blog.Data;
 using blog.Models;
+using blog.Utilities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -12,18 +14,55 @@ namespace blog.Controllers
     public class PostsController : Controller
     {
         private readonly BlogDbContext _context;
+        private readonly UserManager<BlogUser> _userManager;
 
-        public PostsController(BlogDbContext context)
+        public PostsController(BlogDbContext context, UserManager<BlogUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
+        [TempData]
+        public string Status { set; get; }
+
         // GET: Posts
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index([FromQuery(Name = "p")] int curPage, int pagesize)
         {
-            var blogDbContext = _context.Posts.Include(p => p.Author)
+            var posts = _context.Posts.Include(p => p.Author)
                                 .OrderByDescending(post => post.DateUpdated);
-            return View(await blogDbContext.ToListAsync());
+
+            if (pagesize < 1) pagesize = 10;
+
+            int postNumber = await posts.CountAsync();
+
+            int pageNumber = (int)Math.Ceiling((double)postNumber / pagesize);
+
+            if (curPage < 1) curPage = 1;
+            if (curPage > pageNumber) curPage = pageNumber;
+
+
+
+            PagingModel pagingModel = new()
+            {
+                CurPage = curPage,
+                PageNumber = pageNumber,
+                GenerateUrl = (p) => Url.Action("Index", new
+                {
+                    p,
+                    pagesize
+                })
+            };
+            ViewBag.postIndex = (curPage - 1) * pagesize;
+            ViewBag.pagingModel = pagingModel;
+            ViewBag.postNumber = postNumber;
+
+            var pagingPosts = await posts.Skip((curPage - 1) * pagesize)
+                    .Take(pagesize)
+                    .Include(p => p.PostCategories)
+                    .ThenInclude(post => post.Category)
+                    .ToListAsync();
+
+            return View(pagingPosts);
         }
 
         // GET: Posts/Details/5
@@ -46,10 +85,12 @@ namespace blog.Controllers
         }
 
         // GET: Posts/Create
-        public IActionResult Create()
+        public async Task<IActionResult> CreateAsync()
         {
-            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Id");
+            var categories = await _context.Categories.ToListAsync();
+            ViewData["categories"] = new MultiSelectList(categories, "Id", "Title");
             return View();
+
         }
 
         // POST: Posts/Create
@@ -57,15 +98,40 @@ namespace blog.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("PostId,Title,Description,Slug,Content,Published,AuthorId,DateCreated,DateUpdated")] Post post)
+        public async Task<IActionResult> Create([Bind("Title,Description,Slug,Content,Published,CategoryIDs")] CreatePostModel post)
         {
+
+            post.Slug ??= BlogUtilities.GenerateSlug(post.Title);
+
+            if (await _context.Posts.AnyAsync(p => p.Slug == post.Slug))
+            {
+                ModelState.AddModelError("Slug", "Nhập chuỗi Url khác");
+                return View(post);
+            }
+
             if (ModelState.IsValid)
             {
+
+                BlogUser user = await _userManager.GetUserAsync(this.User);
+                post.DateCreated = post.DateUpdated = DateTime.Now;
+                post.AuthorId = user.Id;
                 _context.Add(post);
+
+                if (post.CategoryIDs != null)
+                {
+                    foreach (int CategoryID in post.CategoryIDs)
+                    {
+                        _context.Add(new PostCategory { CategoryID = CategoryID, Post = post });
+                    }
+                }
+
+
+
+
                 await _context.SaveChangesAsync();
+                Status = "Create a blog post successfully!";
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Id", post.AuthorId);
             return View(post);
         }
 
@@ -77,13 +143,31 @@ namespace blog.Controllers
                 return NotFound();
             }
 
-            var post = await _context.Posts.FindAsync(id);
+            var post = await _context.Posts
+                            .Include(post => post.PostCategories)
+                            .FirstOrDefaultAsync(post => post.PostId == id);
+
             if (post == null)
             {
                 return NotFound();
             }
-            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Id", post.AuthorId);
-            return View(post);
+
+            var editPost = new CreatePostModel()
+            {
+                PostId = post.PostId,
+                Title = post.Title,
+                Description = post.Description,
+                Content = post.Content,
+                Slug = post.Slug,
+                Published = post.Published,
+                CategoryIDs = post.PostCategories.Select(post => post.CategoryID).ToArray()
+            };
+
+
+            var categories = await _context.Categories.ToListAsync();
+            ViewData["categories"] = new MultiSelectList(categories, "Id", "Title");
+
+            return View(editPost);
         }
 
         // POST: Posts/Edit/5
@@ -91,34 +175,73 @@ namespace blog.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("PostId,Title,Description,Slug,Content,Published,AuthorId,DateCreated,DateUpdated")] Post post)
+        public async Task<IActionResult> Edit(int id, [Bind("PostId,Title,Description,Slug,Content,Published,CategoryIDs")] CreatePostModel post)
         {
             if (id != post.PostId)
             {
                 return NotFound();
             }
 
+            var categories = await _context.Categories.ToListAsync();
+            ViewData["categories"] = new MultiSelectList(categories, "Id", "Title");
+
+            post.Slug ??= BlogUtilities.GenerateSlug(post.Title);
+
+            if (await _context.Posts.AnyAsync(p => p.Slug == post.Slug && post.PostId != id))
+            {
+                ModelState.AddModelError("Slug", "Nhập chuỗi Url khác");
+                return View(post);
+            }
             if (ModelState.IsValid)
             {
-                try
+
+                var updatingPost = await _context.Posts
+                        .Include(post => post.PostCategories)
+                        .FirstOrDefaultAsync(post => post.PostId == id);
+
+                if (updatingPost == null)
                 {
-                    _context.Update(post);
-                    await _context.SaveChangesAsync();
+                    return NotFound();
                 }
-                catch (DbUpdateConcurrencyException)
+
+                updatingPost.Title = post.Title;
+                updatingPost.Description = post.Description;
+                updatingPost.Content = post.Content;
+                updatingPost.Slug = post.Slug;
+                updatingPost.DateUpdated = post.DateUpdated;
+
+
+                post.CategoryIDs ??= Array.Empty<int>();
+
+                var oldCateIds = updatingPost.PostCategories.Select(c => c.CategoryID).ToArray();
+                var newCateIds = post.CategoryIDs;
+
+                var removeCatePosts = from postCate in updatingPost.PostCategories
+                                      where (!newCateIds.Contains(postCate.CategoryID))
+                                      select postCate;
+                _context.PostCategories.RemoveRange(removeCatePosts);
+
+                var addCateIds = from CateId in newCateIds
+                                 where !oldCateIds.Contains(CateId)
+                                 select CateId;
+
+                foreach (var CateId in addCateIds)
                 {
-                    if (!PostExists(post.PostId))
+                    _context.PostCategories.Add(new PostCategory()
                     {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                        PostID = id,
+                        CategoryID = CateId
+                    });
                 }
+
+
+                _context.Update(updatingPost);
+                await _context.SaveChangesAsync();
+
+                Status = "Update a post successfully!";
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["AuthorId"] = new SelectList(_context.Users, "Id", "Id", post.AuthorId);
+            Status = "Update fail!";
             return View(post);
         }
 
@@ -157,6 +280,8 @@ namespace blog.Controllers
             }
 
             await _context.SaveChangesAsync();
+            Status = "Success delete the post: " + post.Title;
+
             return RedirectToAction(nameof(Index));
         }
 

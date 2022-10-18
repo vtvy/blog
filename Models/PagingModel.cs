@@ -2,10 +2,10 @@ namespace blog.Models
 {
     public class PagingModel
     {
-        public int currentpage { get; set; }
-        public int countpages { get; set; }
+        public int CurPage { get; set; }
+        public int PageNumber { get; set; }
 
-        public Func<int?, string> generateUrl { get; set; }
+        public Func<int?, string> GenerateUrl { get; set; }
 
     }
 

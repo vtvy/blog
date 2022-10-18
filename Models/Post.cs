@@ -30,7 +30,6 @@ namespace blog.Models
 
         public List<PostCategory> PostCategories { get; set; }
 
-        // [Required]
         [Display(Name = "Tác giả")]
         public string AuthorId { set; get; }
         [ForeignKey("AuthorId")]
