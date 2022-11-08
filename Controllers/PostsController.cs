@@ -136,6 +136,7 @@ namespace blog.Controllers
         }
 
         // GET: Posts/Edit/5
+        [Route("/post/{id?}")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Posts == null)
@@ -208,7 +209,7 @@ namespace blog.Controllers
                 updatingPost.Description = post.Description;
                 updatingPost.Content = post.Content;
                 updatingPost.Slug = post.Slug;
-                updatingPost.DateUpdated = post.DateUpdated;
+                updatingPost.DateUpdated = DateTime.Now;
 
 
                 post.CategoryIDs ??= Array.Empty<int>();
@@ -288,6 +289,30 @@ namespace blog.Controllers
         private bool PostExists(int id)
         {
             return _context.Posts.Any(e => e.PostId == id);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UploadAsync(IFormFile file)
+        {
+            string imgPath;
+            if (file.Length > 0)
+            {
+                string stroredPath = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, "wwwroot/files"));
+                if (!Directory.Exists(stroredPath))
+                {
+                    Directory.CreateDirectory(stroredPath);
+                }
+                imgPath = DateTime.Now.ToString("yyyyMMddTHHmmss") + file.FileName;
+                string fullPath = Path.Combine(stroredPath, imgPath);
+                using (var fileStream = new FileStream(fullPath, FileMode.Create))
+                {
+                    await file.CopyToAsync(fileStream);
+                }
+                return Ok(new { imgPath });
+            }
+            imgPath = "No_image_available.svg.png";
+            return Ok(new { imgPath });
+
         }
     }
 }

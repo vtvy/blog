@@ -72,7 +72,7 @@ namespace blog.Areas.Database.Controllers
                     EmailConfirmed = true,
                 };
 
-                await userManager.CreateAsync(adminUser, "nopassw");
+                await userManager.CreateAsync(adminUser, "b1910730");
                 await userManager.AddToRoleAsync(adminUser, RoleName.Administrator);
             }
             Status = "Having seed Database";
