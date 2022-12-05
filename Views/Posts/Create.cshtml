@@ -99,9 +99,9 @@
                           .then(res => {
                             return res;
                           }).catch(err => err);
-                        console.log(response);
                         let imgPath = response.imgPath;
-                        callback(imgPath, { alt: file.name });
+                        let caption = response.results.captions[0].text;
+                        callback(imgPath, { alt: caption });
                     } catch (error) {
                         console.error('Error:', error);
                     }

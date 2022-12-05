@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Azure.CognitiveServices.Vision.ComputerVision;
+using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
+
 
 namespace blog.Controllers
 {
@@ -138,7 +141,7 @@ namespace blog.Controllers
         }
 
         // GET: Posts/Edit/5
-        [Route("/posts/{id?}")]
+        [Route("/posts/edit/{id?}")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Posts == null)
@@ -310,10 +313,16 @@ namespace blog.Controllers
                 {
                     await file.CopyToAsync(fileStream);
                 }
-                imgPath = $@"https://localhost:7224/files/${imgPath}";
-                return Ok(new { imgPath});
+                imgPath = $@"https://localhost:7224/files/{imgPath}";
+                string subscriptionKey = "4c304b39713545feb866e8d9a5f0da40";
+                string endpoint = "https://memorization.cognitiveservices.azure.com/";
+                ComputerVisionClient client = new ComputerVisionClient(new ApiKeyServiceClientCredentials(subscriptionKey))
+                { Endpoint = endpoint };
+                System.IO.Stream analyzeImageStream = System.IO.File.OpenRead(fullPath);
+                ImageDescription results = await client.DescribeImageInStreamAsync(analyzeImageStream);
+                return Ok(new { imgPath, results });
             }
-            imgPath = "No_image_available.svg.png";
+            imgPath = "https://localhost:7224/files/thumnail.png";
             return Ok(new { imgPath });
 
         }
